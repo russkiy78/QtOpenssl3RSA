@@ -10,7 +10,6 @@
 #include <QFile>
 #include <QString>
 #include <openssl/rsa.h>
-#include <openssl/aes.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
