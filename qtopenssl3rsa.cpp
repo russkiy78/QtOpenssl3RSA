@@ -2,9 +2,13 @@
 
 
 
-QtOpenssl3RSA::QtOpenssl3RSA()
+QtOpenssl3RSA::QtOpenssl3RSA(int keyLength, int encryptedKeyLen, const EVP_CIPHER* evpCipherType)
 {
+    this->keyLength = keyLength;
+    this->encryptedKeyLen = encryptedKeyLen;
+    this->evpCipherType = evpCipherType;
 }
+
 
 /*private*/
 QByteArray QtOpenssl3RSA::generateRandom(const int len)
@@ -17,89 +21,191 @@ QByteArray QtOpenssl3RSA::generateRandom(const int len)
 }
 
 /*public*/
+
+bool QtOpenssl3RSA::encode(QByteArray &plainText, QByteArray &encryptedText)
+{
+    if (!pkey)
+        return false;
+
+
+    int plainTextLen = plainText.size();
+
+    unsigned char* charPlainText = reinterpret_cast<unsigned char*>(plainText.data());
+
+    // init new
+    unsigned char* charCipherText = reinterpret_cast<unsigned char*>(OPENSSL_malloc(plainText.size()*2));
+
+    EVP_ENCODE_CTX *ctx;
+    int cipherTextLen = 0;
+    int len;
+    int result = true;
+
+    ctx = EVP_ENCODE_CTX_new();
+    EVP_EncodeInit(ctx);
+
+
+    if(EVP_EncodeUpdate(ctx, charCipherText, &len, charPlainText, plainTextLen) != 1)
+        result = false;
+    else
+        cipherTextLen = len;
+
+    if (result) {
+        EVP_EncodeFinal(ctx, charCipherText + len, &len);
+        cipherTextLen += len;
+    }
+
+
+    if (result) {
+        encryptedText = QByteArray(reinterpret_cast<char*>(charCipherText),cipherTextLen);
+    }
+
+    // clear all
+    OPENSSL_free(charCipherText);
+    EVP_ENCODE_CTX_free(ctx);
+
+    return result;
+
+}
+
+bool QtOpenssl3RSA::decode(QByteArray &plainText, QByteArray &encryptedText)
+{
+    if (!pkey)
+        return false;
+
+
+    int cipherTextLen = encryptedText.size();
+    unsigned char* charCipherText = reinterpret_cast<unsigned char*>(encryptedText.data());
+
+    // init new
+    unsigned char* charPlainText = reinterpret_cast<unsigned char*>(OPENSSL_malloc(cipherTextLen + 1));
+
+    EVP_ENCODE_CTX *ctx;
+    int plainTextLen = 0;
+    int len;
+
+    ctx = EVP_ENCODE_CTX_new();
+    EVP_DecodeInit(ctx);
+
+    EVP_DecodeUpdate(ctx, charPlainText, &len, charCipherText, cipherTextLen);
+    plainTextLen = len;
+
+    EVP_DecodeFinal(ctx, charPlainText + len, &len);
+    plainTextLen += len;
+
+    plainText = QByteArray(reinterpret_cast<char*>(charPlainText),plainTextLen);
+
+
+    // clear all
+    OPENSSL_free(charPlainText);
+    EVP_ENCODE_CTX_free(ctx);
+
+    return true;
+
+}
+
 bool QtOpenssl3RSA::encodeSealRSA(QByteArray &plainText, QByteArray ivLine,  QByteArray &encryptedKey, QByteArray &encryptedText){
+
+    if (!pkey)
+        return false;
 
     // add random padding
     QByteArray padding = generateRandom(16);
     plainText = padding + plainText;
 
+    int plainTextLen = plainText.size();
 
-    unsigned char* plaintext = reinterpret_cast<unsigned char*>(plainText.data());
-    int plaintext_len = plainText.size();
+    unsigned char* charPlainText = reinterpret_cast<unsigned char*>(plainText.data());
+    unsigned char* charIV = reinterpret_cast<unsigned char*>(ivLine.data());
 
-    unsigned char* ciphertext;
-    ciphertext = (unsigned char *) OPENSSL_malloc(plainText.size()*2);
-
-    int encrypted_key_len = 256;
-    unsigned char* iv = reinterpret_cast<unsigned char*>(ivLine.data());
-
-    unsigned char* encrypted_key;
-    encrypted_key = (unsigned char *) OPENSSL_malloc(256);
+    // init new
+    unsigned char* charCipherText = reinterpret_cast<unsigned char*>(OPENSSL_malloc(plainText.size()*2));
+    unsigned char* charEncryptedKey = reinterpret_cast<unsigned char*>(OPENSSL_malloc(keyLength +1));
 
     EVP_CIPHER_CTX *ctx;
-    int ciphertext_len;
+    int cipherTextLen;
     int len;
+    int result = true;
 
     ctx = EVP_CIPHER_CTX_new();
 
-    EVP_SealInit(ctx, EVP_aes_256_cbc(), &encrypted_key, &encrypted_key_len, iv, &pkey, 1);
+    if (EVP_SealInit(ctx, evpCipherType, &charEncryptedKey, &encryptedKeyLen, charIV, &pkey, 1) != 1)
+        result = false;
 
+    if (result) {
+        if(EVP_SealUpdate(ctx, charCipherText, &len, charPlainText, plainTextLen) != 1)
+            result = false;
+        else
+            cipherTextLen = len;
+    }
 
-    EVP_SealUpdate(ctx, ciphertext, &len, plaintext, plaintext_len);
-    ciphertext_len = len;
+    if (result) {
+        if(EVP_SealFinal(ctx, charCipherText + len, &len) != 1)
+            result = false;
+        else
+            cipherTextLen += len;
+    }
 
-    EVP_SealFinal(ctx, ciphertext + len, &len);
-    ciphertext_len += len;
+    if (result) {
+        encryptedKey = QByteArray(reinterpret_cast<char*>(charEncryptedKey),keyLength);
+        encryptedText = QByteArray(reinterpret_cast<char*>(charCipherText),cipherTextLen);
+    }
 
-    qDebug()<<"ciphertext_len"<<ciphertext_len<<QByteArray(reinterpret_cast<char*>(ciphertext),ciphertext_len).toBase64();
-
-    encryptedKey = QByteArray(reinterpret_cast<char*>(encrypted_key),encrypted_key_len);
-    encryptedText = QByteArray(reinterpret_cast<char*>(ciphertext),ciphertext_len);
-
-    OPENSSL_free(ciphertext);
-    OPENSSL_free(encrypted_key);
+    // clear all
+    OPENSSL_free(charEncryptedKey);
+    OPENSSL_free(charCipherText);
     EVP_CIPHER_CTX_free(ctx);
-    return true;
+
+    return result;
 }
 
 bool QtOpenssl3RSA::decodeSealRSA(QByteArray &plainText, QByteArray &ivLine,  QByteArray &encryptedKey, QByteArray &encryptedText) {
 
+    if (!pkey)
+        return false;
+
+    int cipherTextLen = encryptedText.size();
+
+    unsigned char* charCipherText = reinterpret_cast<unsigned char*>(encryptedText.data());
+    unsigned char* charIV = reinterpret_cast<unsigned char*>(ivLine.data());
+    unsigned char* charEncryptedKey = reinterpret_cast<unsigned char*>(encryptedKey.data());
+
+    // init new
+    unsigned char* charPlainText = reinterpret_cast<unsigned char*>(OPENSSL_malloc(encryptedText.size()+1));
+
+
     EVP_CIPHER_CTX *ctx;
-    int ciphertext_len = encryptedText.size();
     int len;
-    int plaintext_len;
+    int plainTextLen = 0;
+    int result = true;
 
-    ctx = EVP_CIPHER_CTX_new();
-    //EVP_CIPHER_CTX_set_padding(ctx, 1);
+    ctx = EVP_CIPHER_CTX_new(); 
 
-    unsigned char* plaintext;
-    plaintext = (unsigned char *) OPENSSL_malloc(ciphertext_len);
+    if (EVP_OpenInit(ctx, evpCipherType, charEncryptedKey, encryptedKeyLen, charIV, pkey) != 1)
+        result = false;
 
-    int encrypted_key_len = 256;
-    unsigned char* iv = reinterpret_cast<unsigned char*>(ivLine.data());
+    if (result){
+        if(EVP_OpenUpdate(ctx, charPlainText, &len, charCipherText, cipherTextLen) != 1)
+            result = false;
+        else
+            plainTextLen = len;
+    }
 
-    unsigned char* encrypted_key = reinterpret_cast<unsigned char*>(encryptedKey.data());
+    if (result){
+        if(EVP_OpenFinal(ctx, charPlainText + len, &len) != 1)
+            result = false;
+        else
+            plainTextLen += len;
+    }
 
-    unsigned char* ciphertext = reinterpret_cast<unsigned char*>(encryptedText.data());
-
-    EVP_OpenInit(ctx, EVP_aes_256_cbc(), encrypted_key, encrypted_key_len, iv, pkey);
-
-    EVP_OpenUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len);
-    plaintext_len = len;
-
-    EVP_OpenFinal(ctx, plaintext + len, &len);
-    plaintext_len += len;
-
-    plainText.clear();
-    plainText = QByteArray(reinterpret_cast<char*>(plaintext),plaintext_len);
+    plainText = QByteArray(reinterpret_cast<char*>(charPlainText),plainTextLen);
 
     //remove padding
     plainText.remove(0,16);
 
-    OPENSSL_free(plaintext);
+    OPENSSL_free(charPlainText);
     EVP_CIPHER_CTX_free(ctx);
 
-    return true;
+    return result;
 
 }
 
@@ -117,7 +223,6 @@ bool QtOpenssl3RSA::createRSAKeypar(const int keyLength)
     /* Generate key */
     if (EVP_PKEY_generate(ctx, &pkey) <= 0)
         return false;
-
 
     EVP_PKEY_CTX_free(ctx);
 

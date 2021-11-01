@@ -23,11 +23,17 @@ class QTOPENSSL3RSA_EXPORT QtOpenssl3RSA
 private:
 
     EVP_PKEY* pkey = NULL;
+    int keyLength = KEY_LENGTH;
+    int encryptedKeyLen = 256;
+    const EVP_CIPHER* evpCipherType = EVP_aes_256_cbc();
 
     QByteArray generateRandom(const int len);
 
 public:
-    QtOpenssl3RSA();
+    QtOpenssl3RSA(int keyLength = KEY_LENGTH, int encryptedKeyLen = 256, const EVP_CIPHER* evpCipherType = EVP_aes_256_cbc());
+
+    bool encode(QByteArray &plainText, QByteArray &encryptedText);
+    bool decode(QByteArray &plainText, QByteArray &encryptedText);
 
     bool encodeSealRSA(QByteArray &plainText, QByteArray ivLine,  QByteArray &encryptedKey, QByteArray &encryptedText);
     bool decodeSealRSA(QByteArray &plainText, QByteArray &ivLine,  QByteArray &encryptedKey, QByteArray &encryptedText);
@@ -46,7 +52,6 @@ public:
 
     bool loadPrivateKeyFromArray (QByteArray &privateKey);
     bool loadPublicKeyFromArray (QByteArray &publicKey);
-
 
     bool signWithPrivateKey(QByteArray &inputText, QByteArray &sign);
     bool verifyWithPublicKey(QByteArray &inputText, QByteArray &sign);

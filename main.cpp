@@ -21,13 +21,23 @@ int main() {
 
 
 
-
-
     QtOpenssl3RSA rsa = QtOpenssl3RSA();
 
     qDebug()<< " createRSAKeypar" <<  rsa.createRSAKeypar();
 
-    QByteArray input = QString("fsa d dfsasf dsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcadsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcavdsf ddaswdas dasd asd asd ccccccvcvcvcvcvcvcvcvcvcvcasd asd asd asd asddfkljds p;klj ds;fkljds;fl ds;fkds;f klds;fl kds;fkds asdf ds00000001").toUtf8();
+     QByteArray input = QString("fsa d dfsasf dsfsdfsdfsdfdsssssssssssssssssssssssssssssssssssl;fm sdf;dsfl ;sdlfk;s dfkds;f ksd;f dslkfsd ;fksd ;lsfdk ;sdfksd;flsdkf; sdlkfsd;lksdf; lsdkf;ldskfds;f ksd;f lsdkf; sdfsd;f ksdf sdk;lfkds; fk sd;fld skfdg dfg dfg dfgfd;flsdkf;l dsf ;ld sk;fldkf;sdfksd;fl dsk;flsdkf;sdfsdfsdfsdfdsfdsfdsfdsfdsf").toUtf8();
+
+     qDebug()<< " input" << QString(input) << input.size();
+
+     rsa.encode(input,output);
+     qDebug()<< " output" << QString(output.toBase64()) << output.size();
+
+     QByteArray res;
+
+     rsa.decode(res,output);
+     qDebug()<< " input" << QString(res) << res.size();
+
+     /*
     QByteArray keyIv = QString("rtytds fds fds fds fds fdsfds fds fds sd ryrt").toUtf8();
     QByteArray key;
     QByteArray input2;
@@ -49,6 +59,7 @@ int main() {
     qDebug()<< " decoded" << QString(input2) << input2.size();
 
 
+    */
 
 
 
